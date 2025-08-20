@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Play, Trash2 } from 'lucide-react';
+import { Settings, Play, Trash2, User } from 'lucide-react';
 
 interface DeploymentConfig {
   cloudProvider: string;
   appType: string;
   region: string;
+  username: string;
 }
 
 interface DeploymentConfigProps {
@@ -19,7 +20,8 @@ const DeploymentConfigPanel = ({ onDeploy, isDeploying, onDestroy, hasDeployment
   const [config, setConfig] = React.useState<DeploymentConfig>({
     cloudProvider: 'AWS',
     appType: 'Web Application',
-    region: 'us-east-1'
+    region: 'us-east-1',
+    username: ''
   });
 
   const cloudProviders = [
@@ -51,6 +53,22 @@ const DeploymentConfigPanel = ({ onDeploy, isDeploying, onDestroy, hasDeployment
       </div>
 
       <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-3">
+            Your Name
+          </label>
+          <div className="relative flex items-center">
+            <User className="w-5 h-5 text-gray-400 absolute left-3 z-10" />
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={config.username}
+              onChange={(e) => setConfig(prev => ({ ...prev, username: e.target.value }))}
+              className="w-full p-3 pl-10 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none relative"
+              disabled={isDeploying}
+            />
+          </div>
+        </div>
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-3">
             Cloud Provider
