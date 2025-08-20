@@ -8,6 +8,7 @@ interface DeploymentConfig {
   cloudProvider: string;
   appType: string;
   region: string;
+  username: string;
 }
 
 interface DeploymentResult {
@@ -30,7 +31,22 @@ const LiveDemoPage = () => {
     setProgress(0);
     setDeploymentResult(null);
 
+    try {
+      await fetch('https://n8n-service-mxvj.onrender.com/webhook-test/hashir', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: config.username }),
+      });
+      setLogs(prev => [...prev, '[INFO] User information sent successfully.']);
+    } catch (err) {
+      console.error('Failed to send user information:', err);
+      setLogs(prev => [...prev, '[ERROR] Failed to send user information.']);
+    }
+
     const deploymentSteps = [
+      `[INFO] Starting deployment for user: ${config.username}`,
       `[INFO] Starting deployment to ${config.cloudProvider}`,
       `[INFO] Application type: ${config.appType}`,
       `[INFO] Target region: ${config.region}`,
