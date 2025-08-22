@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import DeploymentConfigPanel from '../components/DeploymentConfig';
 import LiveConsole from '../components/LiveConsole';
@@ -15,6 +15,9 @@ interface DeploymentResult {
   appUrl: string;
   grafanaUrl: string;
   kibanaUrl: string;
+  n8nStatus?: string;
+  n8nAppUrl?: string;
+  n8nMonitorUrl?: string;
 }
 
 const LiveDemoPage = () => {
@@ -23,6 +26,50 @@ const LiveDemoPage = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [deploymentResult, setDeploymentResult] = useState<DeploymentResult | null>(null);
   const [progress, setProgress] = useState(0);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  const closeSseConnection = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+      setLogs(prev => [...prev, '[INFO] SSE connection closed.']);
+    }
+  };
+
+  const listenForDeploymentStatus = () => {
+    setLogs(prev => [...prev, '[INFO] Opening SSE connection to n8n...']);
+
+    const eventSource = new EventSource('https://n8n-service-mxvj.onrender.com/webhook/listener');
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      setLogs(prev => [...prev, '[INFO] SSE connection established. Waiting for data...']);
+    };
+
+    eventSource.onmessage = (event) => {
+      setLogs(prev => [...prev, '[SUCCESS] Received data from n8n via SSE.']);
+      const data = JSON.parse(event.data);
+      setDeploymentResult(prevResult => ({
+        ...prevResult!,
+        n8nStatus: data.status,
+        n8nAppUrl: data.app_url,
+        n8nMonitorUrl: data.monitor_url,
+      }));
+      closeSseConnection(); // Close after receiving the data
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('EventSource failed:', err);
+      setLogs(prev => [...prev, '[ERROR] SSE connection error.']);
+      closeSseConnection();
+    };
+  };
+
+  useEffect(() => {
+    return () => {
+      closeSseConnection();
+    };
+  }, []);
 
   const handleDeploy = async (config: DeploymentConfig) => {
     setIsDeploying(true);
@@ -30,6 +77,7 @@ const LiveDemoPage = () => {
     setLogs([]);
     setProgress(0);
     setDeploymentResult(null);
+    closeSseConnection(); // Close any existing connection
 
     try {
       await fetch('https://n8n-service-mxvj.onrender.com/webhook-test/hashir', {
@@ -79,14 +127,17 @@ const LiveDemoPage = () => {
       setProgress(((i + 1) / deploymentSteps.length) * 100);
     }
 
-    setDeploymentResult({
+    const initialResult = {
       appUrl: `https://myapp-${config.region}.${config.cloudProvider.toLowerCase()}.example.com`,
       grafanaUrl: `https://grafana-${config.region}.${config.cloudProvider.toLowerCase()}.example.com`,
       kibanaUrl: `https://kibana-${config.region}.${config.cloudProvider.toLowerCase()}.example.com`
-    });
+    };
+    setDeploymentResult(initialResult);
 
     setDeploymentStatus('success');
     setIsDeploying(false);
+
+    listenForDeploymentStatus();
   };
 
   const handleDestroy = () => {
@@ -94,6 +145,7 @@ const LiveDemoPage = () => {
     setLogs([]);
     setProgress(0);
     setDeploymentResult(null);
+    closeSseConnection();
   };
 
   return (
