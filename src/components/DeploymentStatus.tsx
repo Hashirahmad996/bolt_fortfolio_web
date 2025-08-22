@@ -5,7 +5,10 @@ import { Clock, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 interface DeploymentResult {
   appUrl: string;
   grafanaUrl: string;
-  kibanaUrl: string;
+  kibanaUrl: string; // Keep for type safety, but remove from UI
+  n8nStatus?: string;
+  n8nAppUrl?: string;
+  n8nMonitorUrl?: string;
 }
 
 interface DeploymentStatusProps {
@@ -98,7 +101,7 @@ const DeploymentStatus = ({ status, progress, result }: DeploymentStatusProps) =
                 </div>
               </div>
               <a
-                href={result.appUrl}
+                href={result.n8nAppUrl || result.appUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -118,7 +121,7 @@ const DeploymentStatus = ({ status, progress, result }: DeploymentStatusProps) =
                 </div>
               </div>
               <a
-                href={result.grafanaUrl}
+                href={result.n8nMonitorUrl || result.grafanaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -128,25 +131,27 @@ const DeploymentStatus = ({ status, progress, result }: DeploymentStatusProps) =
             </div>
           </div>
 
-          <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <motion.div className="w-5 h-5 text-purple-400">📄</motion.div>
-                <div>
-                  <div className="font-medium text-white">Log Management</div>
-                  <div className="text-sm text-gray-400">Kibana log analysis</div>
+          {result.n8nStatus && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-6"
+            >
+              <h4 className="text-lg font-semibold text-white mb-4">
+                n8n Deployment Status
+              </h4>
+              <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                <div className="flex items-center space-x-3">
+                  <div className="w-5 h-5 text-teal-400">🚀</div>
+                  <div>
+                    <div className="font-medium text-white">Status</div>
+                    <div className="text-sm text-gray-400">{result.n8nStatus}</div>
+                  </div>
                 </div>
               </div>
-              <a
-                href={result.kibanaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                View Logs
-              </a>
-            </div>
-          </div>
+            </motion.div>
+          )}
         </motion.div>
       )}
 
