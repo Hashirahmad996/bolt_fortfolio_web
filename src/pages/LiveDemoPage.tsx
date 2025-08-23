@@ -39,7 +39,7 @@ const LiveDemoPage = () => {
   const listenForDeploymentStatus = () => {
     setLogs(prev => [...prev, '[INFO] Opening SSE connection to n8n...']);
 
-    const eventSource = new EventSource('https://n8n-service-mxvj.onrender.com/webhook/listener');
+    const eventSource = new EventSource('https://n8n-service-myxr.onrender.com/webhook/listener');
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
@@ -80,7 +80,7 @@ const LiveDemoPage = () => {
     closeSseConnection(); // Close any existing connection
 
     try {
-      await fetch('https://n8n-service-mxvj.onrender.com/webhook-test/hashir', {
+      await fetch('https://n8n-service-myxr.onrender.com/webhook/initiate-deployment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
