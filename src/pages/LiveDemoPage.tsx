@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import DeploymentConfigPanel from '../components/DeploymentConfig';
 import LiveConsole from '../components/LiveConsole';
 import DeploymentStatus from '../components/DeploymentStatus';
+import Pusher from 'pusher-js';
 
 interface DeploymentConfig {
   cloudProvider: string;
@@ -36,43 +37,38 @@ const LiveDemoPage = () => {
     }
   };
 
-  const listenForDeploymentStatus = () => {
-  setLogs(prev => [...prev, '[INFO] Opening SSE connection to n8n...']);
+  
+const listenForDeploymentStatus = () => {
+  setLogs(prev => [...prev, '[INFO] Connecting to Pusher...']);
 
-  const eventSource = new EventSource('https://n8n-service-myxr.onrender.com/webhook/data-listener');
-  eventSourceRef.current = eventSource;
+  const pusher = new Pusher('YOUR_APP_KEY', {
+    cluster: 'YOUR_APP_CLUSTER',
+  });
 
-  eventSource.onopen = () => {
-    setLogs(prev => [...prev, '[INFO] SSE connection established. Waiting for data...']);
-  };
+  const channel = pusher.subscribe('deployment-status');
 
-  eventSource.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      
-      // Update the logs with a new message
-      setLogs(prev => [...prev, `[SUCCESS] Received status: ${data.status}`]);
+  channel.bind('status-update', (data: any) => {
+    setLogs(prev => [...prev, `[SUCCESS] Received status: ${data.status}`]);
 
-      // Update your state with the received data
-      setDeploymentResult(prevResult => ({
-        ...prevResult!,
-        n8nStatus: data.status,
-        n8nAppUrl: data.app_url,
-        n8nMonitorUrl: data.monitor_url,
-      }));
+    setDeploymentResult(prevResult => ({
+      ...prevResult!,
+      n8nStatus: data.status,
+      n8nAppUrl: data.app_url,
+      n8nMonitorUrl: data.monitor_url,
+    }));
 
-      // Check for a final "completed" or "failed" status
-      if (data.status === 'completed' || data.status === 'failed') {
-        // If it's the final message, then close the connection
-        closeSseConnection(); 
-      }
-
-    } catch (e) {
-      console.error('Failed to parse JSON for SSE event:', e);
-      setLogs(prev => [...prev, '[ERROR] Failed to parse data from SSE stream.']);
-      closeSseConnection();
+    if (data.status === 'completed' || data.status === 'failed') {
+      setLogs(prev => [...prev, '[INFO] Deployment process ended.']);
+      // No explicit connection closing needed for Pusher
     }
-  };
+  });
+
+  pusher.connection.bind('error', (err: any) => {
+    console.error('Pusher connection error:', err);
+    setLogs(prev => [...prev, '[ERROR] Pusher connection error.']);
+  });
+};
+
 
   eventSource.onerror = (err) => {
     console.error('EventSource failed:', err);
