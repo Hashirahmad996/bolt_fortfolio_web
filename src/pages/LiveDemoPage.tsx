@@ -58,10 +58,23 @@ const LiveDemoPage = () => {
       closeSseConnection(); // Close after receiving the data
     };
 
-    eventSource.onerror = (err) => {
-      console.error('EventSource failed:', err);
-      setLogs(prev => [...prev, '[ERROR] SSE connection error.']);
-      closeSseConnection();
+   eventSource.onerror = (err) => {
+  console.error('EventSource failed:', err);
+  
+  // A simple way to get more info is to check if the error object has a message.
+  if (err.message) {
+    console.error('Error message:', err.message);
+    setLogs(prev => [...prev, `[ERROR] SSE connection error: ${err.message}`]);
+  } else {
+    // For network-related errors, the error object itself may not contain a detailed message.
+    // The EventSource API doesn't provide a direct way to access HTTP status codes.
+    console.error('Error event object:', err);
+    setLogs(prev => [...prev, '[ERROR] SSE connection error. Please check the network log.']);
+  }
+
+  // It's a good practice to close the connection on error to prevent infinite reconnect attempts
+  // if you don't want them, but EventSource does have automatic reconnect behavior.
+  closeSseConnection();
     };
   };
 
