@@ -37,46 +37,49 @@ const LiveDemoPage = () => {
   };
 
   const listenForDeploymentStatus = () => {
-    setLogs(prev => [...prev, '[INFO] Opening SSE connection to n8n...']);
+  setLogs(prev => [...prev, '[INFO] Opening SSE connection to n8n...']);
 
-    const eventSource = new EventSource('https://n8n-service-myxr.onrender.com/webhook/data-listener');
-    eventSourceRef.current = eventSource;
+  const eventSource = new EventSource('https://n8n-service-myxr.onrender.com/webhook/data-listener');
+  eventSourceRef.current = eventSource;
 
-    eventSource.onopen = () => {
-      setLogs(prev => [...prev, '[INFO] SSE connection established. Waiting for data...']);
-    };
+  eventSource.onopen = () => {
+    setLogs(prev => [...prev, '[INFO] SSE connection established. Waiting for data...']);
+  };
 
-    eventSource.onmessage = (event) => {
-      setLogs(prev => [...prev, '[SUCCESS] Received data from n8n via SSE.']);
+  eventSource.onmessage = (event) => {
+    try {
       const data = JSON.parse(event.data);
+      
+      // Update the logs with a new message
+      setLogs(prev => [...prev, `[SUCCESS] Received status: ${data.status}`]);
+
+      // Update your state with the received data
       setDeploymentResult(prevResult => ({
         ...prevResult!,
         n8nStatus: data.status,
         n8nAppUrl: data.app_url,
         n8nMonitorUrl: data.monitor_url,
       }));
-      closeSseConnection(); // Close after receiving the data
-    };
 
-   eventSource.onerror = (err) => {
-  console.error('EventSource failed:', err);
-  
-  // A simple way to get more info is to check if the error object has a message.
-  if (err.message) {
-    console.error('Error message:', err.message);
-    setLogs(prev => [...prev, `[ERROR] SSE connection error: ${err.message}`]);
-  } else {
-    // For network-related errors, the error object itself may not contain a detailed message.
-    // The EventSource API doesn't provide a direct way to access HTTP status codes.
-    console.error('Error event object:', err);
-    setLogs(prev => [...prev, '[ERROR] SSE connection error. Please check the network log.']);
-  }
+      // Check for a final "completed" or "failed" status
+      if (data.status === 'completed' || data.status === 'failed') {
+        // If it's the final message, then close the connection
+        closeSseConnection(); 
+      }
 
-  // It's a good practice to close the connection on error to prevent infinite reconnect attempts
-  // if you don't want them, but EventSource does have automatic reconnect behavior.
-  closeSseConnection();
-    };
+    } catch (e) {
+      console.error('Failed to parse JSON for SSE event:', e);
+      setLogs(prev => [...prev, '[ERROR] Failed to parse data from SSE stream.']);
+      closeSseConnection();
+    }
   };
+
+  eventSource.onerror = (err) => {
+    console.error('EventSource failed:', err);
+    setLogs(prev => [...prev, '[ERROR] SSE connection error. Please check the network log.']);
+    closeSseConnection();
+  };
+};
 
   useEffect(() => {
     return () => {
