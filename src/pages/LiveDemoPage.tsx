@@ -70,13 +70,6 @@ const listenForDeploymentStatus = () => {
 };
 
 
-  eventSource.onerror = (err) => {
-    console.error('EventSource failed:', err);
-    setLogs(prev => [...prev, '[ERROR] SSE connection error. Please check the network log.']);
-    closeSseConnection();
-  };
-};
-
   useEffect(() => {
     return () => {
       closeSseConnection();
