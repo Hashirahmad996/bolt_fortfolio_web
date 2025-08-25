@@ -46,8 +46,9 @@ const listenForDeploymentStatus = () => {
   });
 
   const channel = pusher.subscribe('deployment-status');
-
+  
   channel.bind('status-update', (data: any) => {
+    console.log('Pusher event received:', data);
     setLogs(prev => [...prev, `[SUCCESS] Received status: ${data.status}`]);
 
     setDeploymentResult(prevResult => ({
