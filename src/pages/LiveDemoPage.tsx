@@ -48,6 +48,8 @@ const listenForDeploymentStatus = () => {
   channel.bind('my-event', (event: any) => {
     console.log('Pusher event received:', event);
     setLogs(prev => [...prev, 'Pusher event received']);
+ 
+  
     try {
       // The actual data payload is a string inside the 'data' property of the event object.
       const parsedData = JSON.parse(event.data);
