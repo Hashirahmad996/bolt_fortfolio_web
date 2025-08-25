@@ -48,7 +48,13 @@ const listenForDeploymentStatus = () => {
   channel.bind('my-event', (data: any) => {
     console.log('Pusher event received:', data);
     try {
-      const parsedData = JSON.parse(data);
+      let parsedData;
+      if (typeof data === 'string') {
+        parsedData = JSON.parse(data);
+      } else {
+        parsedData = data;
+      }
+
       setLogs(prev => [...prev, `[SUCCESS] Received trigger with status: ${parsedData.status}`]);
 
       setDeploymentResult({
