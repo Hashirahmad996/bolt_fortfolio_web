@@ -50,18 +50,24 @@ const listenForDeploymentStatus = () => {
   
   channel.bind('my‑event', (data: any) => {
     console.log('Pusher event received:', data);
-    setLogs(prev => [...prev, `[SUCCESS] Received status: ${data.status}`]);
+    try {
+      const parsedData = JSON.parse(data);
+      setLogs(prev => [...prev, `[SUCCESS] Received status: ${parsedData.status}`]);
 
-    setDeploymentResult(prevResult => ({
-      ...prevResult!,
-      n8nStatus: data.status,
-      n8nAppUrl: data.app_url,
-      n8nMonitorUrl: data.monitor_url,
-    }));
+      setDeploymentResult(prevResult => ({
+        ...prevResult!,
+        n8nStatus: parsedData.status,
+        n8nAppUrl: parsedData.app_url,
+        n8nMonitorUrl: parsedData.monitor_url,
+      }));
 
-    if (data.status === 'completed' || data.status === 'failed') {
-      setLogs(prev => [...prev, '[INFO] Deployment process ended.']);
-      // No explicit connection closing needed for Pusher
+      if (parsedData.status === 'completed' || parsedData.status === 'failed') {
+        setLogs(prev => [...prev, '[INFO] Deployment process ended.']);
+        // No explicit connection closing needed for Pusher
+      }
+    } catch (error) {
+      console.error('Failed to parse Pusher event data:', error);
+      setLogs(prev => [...prev, '[ERROR] Failed to process incoming event.']);
     }
   });
 
