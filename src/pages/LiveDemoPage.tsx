@@ -42,7 +42,7 @@ const listenForDeploymentStatus = () => {
   setLogs(prev => [...prev, '[INFO] Connecting to Pusher...']);
 
   const pusher = new Pusher('dbadd46115526a98ea56', {
-    cluster: '32ee91413ac130b6fd32',
+    cluster: 'ap2',
   });
   const channel = pusher.subscribe('my‑channel');
 
