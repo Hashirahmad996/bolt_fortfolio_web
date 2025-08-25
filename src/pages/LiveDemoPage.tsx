@@ -48,7 +48,7 @@ const listenForDeploymentStatus = () => {
 
   setLogs(prev => [...prev, '[INFO] Subscribed to channel: my‑channel']);
   
-  channel.bind('my‑event', (data: any) => {
+  channel.bind('my-event', (data: any) => {
     console.log('Pusher event received:', data);
     try {
       const parsedData = JSON.parse(data);
