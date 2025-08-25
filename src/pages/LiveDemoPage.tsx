@@ -14,11 +14,8 @@ interface DeploymentConfig {
 
 interface DeploymentResult {
   appUrl: string;
-  grafanaUrl: string;
-  kibanaUrl: string;
-  n8nStatus?: string;
-  n8nAppUrl?: string;
-  n8nMonitorUrl?: string;
+  monitorUrl: string;
+  status?: string;
 }
 
 const LiveDemoPage = () => {
@@ -52,22 +49,26 @@ const listenForDeploymentStatus = () => {
     console.log('Pusher event received:', data);
     try {
       const parsedData = JSON.parse(data);
-      setLogs(prev => [...prev, `[SUCCESS] Received status: ${parsedData.status}`]);
+      setLogs(prev => [...prev, `[SUCCESS] Received trigger with status: ${parsedData.status}`]);
 
-      setDeploymentResult(prevResult => ({
-        ...prevResult!,
-        n8nStatus: parsedData.status,
-        n8nAppUrl: parsedData.app_url,
-        n8nMonitorUrl: parsedData.monitor_url,
-      }));
+      setDeploymentResult({
+        appUrl: parsedData.app_url || '',
+        monitorUrl: parsedData.monitor_url || '',
+        status: parsedData.status,
+      });
 
-      if (parsedData.status === 'completed' || parsedData.status === 'failed') {
-        setLogs(prev => [...prev, '[INFO] Deployment process ended.']);
-        // No explicit connection closing needed for Pusher
+      const finalStatus = parsedData.status?.toLowerCase();
+      if (finalStatus === 'completed' || finalStatus === 'success' || finalStatus === 'failed') {
+        setLogs(prev => [...prev, '[INFO] Deployment process has concluded.']);
+        setDeploymentStatus(finalStatus === 'failed' ? 'error' : 'success');
+        setIsDeploying(false);
+        setProgress(100);
       }
     } catch (error) {
       console.error('Failed to parse Pusher event data:', error);
-      setLogs(prev => [...prev, '[ERROR] Failed to process incoming event.']);
+      setLogs(prev => [...prev, '[ERROR] Failed to process incoming event data.']);
+      setDeploymentStatus('error');
+      setIsDeploying(false);
     }
   });
 
@@ -92,6 +93,8 @@ const listenForDeploymentStatus = () => {
     setDeploymentResult(null);
     closeSseConnection(); // Close any existing connection
 
+    listenForDeploymentStatus();
+
     try {
       await fetch('https://n8n-service-myxr.onrender.com/webhook/initiate-deployment', {
         method: 'POST',
@@ -100,57 +103,13 @@ const listenForDeploymentStatus = () => {
         },
         body: JSON.stringify({ username: config.username }),
       });
-      setLogs(prev => [...prev, '[INFO] User information sent successfully.']);
+      setLogs(prev => [...prev, `[INFO] Deployment initiated for user: ${config.username}. Waiting for trigger...`]);
     } catch (err) {
       console.error('Failed to send user information:', err);
-      setLogs(prev => [...prev, '[ERROR] Failed to send user information.']);
+      setLogs(prev => [...prev, '[ERROR] Failed to initiate deployment.']);
+      setDeploymentStatus('error');
+      setIsDeploying(false);
     }
-
-    const deploymentSteps = [
-      `[INFO] Starting deployment for user: ${config.username}`,
-      `[INFO] Starting deployment to ${config.cloudProvider}`,
-      `[INFO] Application type: ${config.appType}`,
-      `[INFO] Target region: ${config.region}`,
-      '[INFO] Initializing Terraform...',
-      '[SUCCESS] Terraform initialized successfully',
-      '[INFO] Planning infrastructure changes...',
-      '[SUCCESS] Plan: 12 to add, 0 to change, 0 to destroy',
-      '[INFO] Applying infrastructure changes...',
-      '[INFO] Creating VPC and networking components...',
-      '[SUCCESS] VPC created: vpc-abc123def456',
-      '[INFO] Provisioning Kubernetes cluster...',
-      '[INFO] Installing cluster autoscaler...',
-      '[SUCCESS] Kubernetes cluster ready',
-      '[INFO] Building container image...',
-      '[SUCCESS] Image built: myapp:v1.2.3',
-      '[INFO] Pushing to container registry...',
-      '[SUCCESS] Image pushed successfully',
-      '[INFO] Deploying application to Kubernetes...',
-      '[INFO] Creating deployment, service, and ingress...',
-      '[SUCCESS] Application deployed successfully',
-      '[INFO] Setting up monitoring and logging...',
-      '[SUCCESS] Grafana dashboard configured',
-      '[SUCCESS] Kibana logging setup complete',
-      '[SUCCESS] Deployment completed successfully!'
-    ];
-
-    for (let i = 0; i < deploymentSteps.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
-      setLogs(prev => [...prev, deploymentSteps[i]]);
-      setProgress(((i + 1) / deploymentSteps.length) * 100);
-    }
-
-    const initialResult = {
-      appUrl: `https://myapp-${config.region}.${config.cloudProvider.toLowerCase()}.example.com`,
-      grafanaUrl: `https://grafana-${config.region}.${config.cloudProvider.toLowerCase()}.example.com`,
-      kibanaUrl: `https://kibana-${config.region}.${config.cloudProvider.toLowerCase()}.example.com`
-    };
-    setDeploymentResult(initialResult);
-
-    setDeploymentStatus('success');
-    setIsDeploying(false);
-
-    listenForDeploymentStatus();
   };
 
   const handleDestroy = () => {
