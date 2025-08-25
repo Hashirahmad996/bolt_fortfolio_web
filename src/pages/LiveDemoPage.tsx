@@ -44,10 +44,11 @@ const listenForDeploymentStatus = () => {
   const pusher = new Pusher('dbadd46115526a98ea56', {
     cluster: '32ee91413ac130b6fd32',
   });
+  const channel = pusher.subscribe('my‑channel');
 
-  const channel = pusher.subscribe('deployment-status');
+  setLogs(prev => [...prev, '[INFO] Subscribed to channel: my‑channel']);
   
-  channel.bind('status-update', (data: any) => {
+  channel.bind('my‑event', (data: any) => {
     console.log('Pusher event received:', data);
     setLogs(prev => [...prev, `[SUCCESS] Received status: ${data.status}`]);
 
