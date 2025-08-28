@@ -54,33 +54,46 @@ const listenForDeploymentStatus = () => {
 
   setLogs(prev => [...prev, '[INFO] Subscribed to channel: my-channel']);
   
-  channel.bind('my-event', (event: any) => {
-    console.log('Pusher event received:', event);
-    setLogs(prev => [...prev, 'Pusher event received']);
+  channel.bind('log-update', (data: any) => {
     try {
-      // The actual data payload is a string inside the 'data' property of the event object.
-      const parsedData = JSON.parse(event.data);
+      const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+      if (parsedData.message) {
+        setLogs(prev => [...prev, `[INFO] ${parsedData.message}`]);
+      }
+    } catch (error) {
+      console.error('Failed to process log-update event:', error);
+    }
+  });
 
-      setLogs(prev => [...prev, `[SUCCESS] Received trigger with status: ${parsedData.status}`]);
+  channel.bind('deployment-error', (data: any) => {
+    try {
+      const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+      const errorMessage = parsedData.error || 'An unknown error occurred.';
+      setLogs(prev => [...prev, `[ERROR] ${errorMessage}`]);
+      setDeploymentStatus('error');
+      setIsDeploying(false);
+      setProgress(100); // Set progress to 100 to show completion, even on error
+    } catch (error) {
+      console.error('Failed to process deployment-error event:', error);
+      setLogs(prev => [...prev, '[ERROR] Failed to process the error event.']);
+    }
+  });
 
+  channel.bind('deployment-success', (data: any) => {
+    try {
+      const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
       setDeploymentResult({
         appUrl: parsedData.app_url || '',
         monitorUrl: parsedData.monitor_url || '',
-        status: parsedData.status,
+        status: 'success',
       });
-
-      const finalStatus = parsedData.status?.toLowerCase();
-      if (finalStatus === 'completed' || finalStatus === 'success' || finalStatus === 'failed') {
-        setLogs(prev => [...prev, '[INFO] Deployment process has concluded.']);
-        setDeploymentStatus(finalStatus === 'failed' ? 'error' : 'success');
-        setIsDeploying(false);
-        setProgress(100);
-      }
-    } catch (error) {
-      console.error('Failed to parse Pusher event data:', error);
-      setLogs(prev => [...prev, '[ERROR] Failed to process incoming event data.']);
-      setDeploymentStatus('error');
+      setLogs(prev => [...prev, '[SUCCESS] Deployment completed successfully!']);
+      setDeploymentStatus('success');
       setIsDeploying(false);
+      setProgress(100);
+    } catch (error) {
+      console.error('Failed to process deployment-success event:', error);
+      setLogs(prev => [...prev, '[ERROR] Failed to process the success event.']);
     }
   });
 
