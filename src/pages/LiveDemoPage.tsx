@@ -38,8 +38,17 @@ const LiveDemoPage = () => {
 const listenForDeploymentStatus = () => {
   setLogs(prev => [...prev, '[INFO] Connecting to Pusher...']);
 
-  const pusher = new Pusher('dbadd46115526a98ea56', {
-    cluster: 'ap2',
+  const appKey = import.meta.env.VITE_PUSHER_APP_KEY;
+  const cluster = import.meta.env.VITE_PUSHER_CLUSTER;
+
+  if (!appKey || !cluster) {
+    console.error('Pusher environment variables not set.');
+    setLogs(prev => [...prev, '[ERROR] Pusher configuration is missing.']);
+    return;
+  }
+
+  const pusher = new Pusher(appKey, {
+    cluster: cluster,
   });
   const channel = pusher.subscribe('my-channel');
 
@@ -48,8 +57,6 @@ const listenForDeploymentStatus = () => {
   channel.bind('my-event', (event: any) => {
     console.log('Pusher event received:', event);
     setLogs(prev => [...prev, 'Pusher event received']);
- 
-  
     try {
       // The actual data payload is a string inside the 'data' property of the event object.
       const parsedData = JSON.parse(event.data);
