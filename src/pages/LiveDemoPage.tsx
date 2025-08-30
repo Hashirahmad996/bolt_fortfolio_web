@@ -38,8 +38,8 @@ const LiveDemoPage = () => {
 const listenForDeploymentStatus = () => {
   setLogs(prev => [...prev, '[INFO] Connecting to Pusher...']);
 
-  const appKey = import.meta.env.VITE_PUSHER_APP_KEY;
-  const cluster = import.meta.env.VITE_PUSHER_CLUSTER;
+  const appKey = "dbadd46115526a98ea56";
+  const cluster = "ap2"
 
   if (!appKey || !cluster) {
     console.error('Pusher environment variables not set.');
