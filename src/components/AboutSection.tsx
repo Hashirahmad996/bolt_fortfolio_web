@@ -25,7 +25,7 @@ const AboutSection = () => {
               </h2>
               <div className="space-y-6 text-lg text-gray-300">
                 <p>
-                  Senior DevOps Engineer with 8+ years of experience in designing, implementing, 
+                  Senior DevOps Engineer with 2+ years of experience in designing, implementing, 
                   and maintaining scalable cloud infrastructure and CI/CD pipelines for enterprise applications.
                 </p>
                 <p>
